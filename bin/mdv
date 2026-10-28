@@ -1,0 +1,3 @@
+#!/bin/sh
+# mdv FILE.md [...]  — open markdown files in MDView
+exec open -a MDView "$@"
