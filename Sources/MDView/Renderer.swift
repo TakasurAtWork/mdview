@@ -7,6 +7,7 @@ enum Renderer {
         let (frontMatter, markdown) = splitFrontMatter(source)
         var html = HTMLFormatter.format(Document(parsing: markdown))
         html = addHeadingIDs(html)
+        html = addAlerts(html)
         if let frontMatter {
             html = "<pre class=\"front-matter\"><code>\(escape(frontMatter))</code></pre>\n" + html
         }
@@ -34,6 +35,25 @@ enum Renderer {
             return (fm, rest)
         }
         return (nil, text)
+    }
+
+    private static let alertRegex = try! NSRegularExpression(
+        pattern: "<blockquote>\\s*<p>\\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION)\\]\\s*(?:</p>\\s*<p>|<br\\s*/?>\\s*)?",
+        options: .caseInsensitive)
+
+    /// GitHub alerts: `> [!NOTE]`, `> [!TIP]`, `> [!IMPORTANT]`, `> [!WARNING]`, `> [!CAUTION]`.
+    private static func addAlerts(_ html: String) -> String {
+        let ns = html as NSString
+        var out = ""
+        var cursor = 0
+        for m in alertRegex.matches(in: html, range: NSRange(location: 0, length: ns.length)) {
+            out += ns.substring(with: NSRange(location: cursor, length: m.range.location - cursor))
+            let kind = ns.substring(with: m.range(at: 1)).lowercased()
+            out += "<blockquote class=\"alert alert-\(kind)\"><p class=\"alert-title\">\(kind.capitalized)</p>\n<p>"
+            cursor = m.range.location + m.range.length
+        }
+        out += ns.substring(from: cursor)
+        return out
     }
 
     private static let headingRegex = try! NSRegularExpression(pattern: "<h([1-6])>(.*?)</h\\1>")
