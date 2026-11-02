@@ -1,18 +1,14 @@
 import AppKit
 
-/// Read-only document. Watches its file and re-renders whenever another app writes it.
+/// Read-only single-file document. The view controller does the reading and watching.
 @objc(MarkdownDocument)
 final class MarkdownDocument: NSDocument {
-    private(set) var markdown = ""
-    private var watcher: FileWatcher?
-
     override class var autosavesInPlace: Bool { false }
     override var isDocumentEdited: Bool { false }
 
-    override func read(from data: Data, ofType typeName: String) throws {
-        markdown = Self.decode(data)
-        if watcher == nil, let url = fileURL {
-            watcher = FileWatcher(url: url) { [weak self] in self?.reloadFromDisk() }
+    override func read(from url: URL, ofType typeName: String) throws {
+        guard FileManager.default.isReadableFile(atPath: url.path) else {
+            throw CocoaError(.fileReadNoPermission, userInfo: [NSURLErrorKey: url])
         }
     }
 
@@ -21,34 +17,56 @@ final class MarkdownDocument: NSDocument {
     }
 
     override func makeWindowControllers() {
-        addWindowController(ViewerWindowController())
-    }
-
-    func reloadFromDisk() {
-        guard let url = fileURL, let data = try? Data(contentsOf: url) else { return }
-        let text = Self.decode(data)
-        guard text != markdown else { return }
-        markdown = text
-        windowControllers.forEach { ($0 as? ViewerWindowController)?.render() }
-    }
-
-    override func close() {
-        watcher = nil
-        super.close()
+        let markdown = MarkdownViewController()
+        addWindowController(ViewerWindowController(content: markdown, markdown: markdown))
+        if let url = fileURL { markdown.show(url) }
     }
 
     override func printOperation(withSettings printSettings: [NSPrintInfo.AttributeKey: Any]) throws -> NSPrintOperation {
         guard let viewer = windowControllers.first as? ViewerWindowController else {
             throw CocoaError(.featureUnsupported)
         }
-        return viewer.printOperation(printInfo)
+        return viewer.markdown.printOperation(printInfo)
+    }
+}
+
+/// Read-only folder document: a sidebar of the folder's Markdown files plus a viewer.
+@objc(FolderDocument)
+final class FolderDocument: NSDocument {
+    override class var autosavesInPlace: Bool { false }
+    override var isDocumentEdited: Bool { false }
+
+    override func read(from url: URL, ofType typeName: String) throws {
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else {
+            throw CocoaError(.fileReadNoSuchFile, userInfo: [NSURLErrorKey: url])
+        }
     }
 
-    private static func decode(_ data: Data) -> String {
-        var text = String(data: data, encoding: .utf8)
-            ?? String(data: data, encoding: .isoLatin1)
-            ?? String(decoding: data, as: UTF8.self)
-        if text.hasPrefix("\u{FEFF}") { text.removeFirst() }
-        return text
+    override func data(ofType typeName: String) throws -> Data {
+        throw CocoaError(.featureUnsupported)
+    }
+
+    override func makeWindowControllers() {
+        guard let url = fileURL else { return }
+        let folder = FolderViewController(root: url)
+        addWindowController(ViewerWindowController(content: folder, markdown: folder.markdown, hasSidebar: true))
+    }
+
+    override func printOperation(withSettings printSettings: [NSPrintInfo.AttributeKey: Any]) throws -> NSPrintOperation {
+        guard let viewer = windowControllers.first as? ViewerWindowController else {
+            throw CocoaError(.featureUnsupported)
+        }
+        return viewer.markdown.printOperation(printInfo)
+    }
+}
+
+/// Lets the Open panel pick folders as well as files.
+final class DocumentController: NSDocumentController {
+    override func beginOpenPanel(_ openPanel: NSOpenPanel, forTypes inTypes: [String]?,
+                                 completionHandler: @escaping (Int) -> Void) {
+        openPanel.canChooseDirectories = true
+        openPanel.treatsFilePackagesAsDirectories = false
+        super.beginOpenPanel(openPanel, forTypes: inTypes, completionHandler: completionHandler)
     }
 }

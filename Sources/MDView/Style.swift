@@ -45,6 +45,7 @@ enum Style {
     tr:nth-child(2n) { background: var(--code-bg); }
     img { max-width: 100%; }
     hr { height: 3px; margin: 1.5em 0; border: 0; background: var(--border); }
+    .empty { margin-top: 30vh; text-align: center; color: var(--muted); }
     mark { background: var(--mark); color: inherit; }
     @media print {
       body { padding: 0; }

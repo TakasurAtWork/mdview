@@ -2,7 +2,7 @@ import AppKit
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationWillFinishLaunching(_ notification: Notification) {
-        _ = NSDocumentController.shared
+        _ = DocumentController() // the first instance becomes NSDocumentController.shared
         NSApp.mainMenu = MainMenu.build()
     }
 

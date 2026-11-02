@@ -38,16 +38,21 @@ enum MainMenu {
             $0.addItem("Select All", #selector(NSText.selectAll(_:)), "a")
             $0.addItem(.separator())
             $0.addItem("Find…", #selector(ViewerWindowController.showFind(_:)), "f")
-            $0.addItem("Find Next", #selector(ViewerWindowController.findNext(_:)), "g")
-            $0.addItem("Find Previous", #selector(ViewerWindowController.findPrevious(_:)), "g", [.command, .shift])
+            $0.addItem("Find Next", #selector(ViewerWindowController.findNextMatch(_:)), "g")
+            $0.addItem("Find Previous", #selector(ViewerWindowController.findPreviousMatch(_:)), "g", [.command, .shift])
+            $0.addItem("Filter Files…", #selector(FolderViewController.filterFiles(_:)), "o", [.command, .shift])
         }
 
         main.addSubmenu("View") {
-            $0.addItem("Reload", #selector(ViewerWindowController.reload(_:)), "r")
+            $0.addItem("Reload", #selector(ViewerWindowController.reloadDocument(_:)), "r")
+            $0.addItem(.separator())
+            $0.addItem("Back", #selector(FolderViewController.goBack(_:)), "[")
+            $0.addItem("Forward", #selector(FolderViewController.goForward(_:)), "]")
+            $0.addItem("Toggle Sidebar", #selector(NSSplitViewController.toggleSidebar(_:)), "s", [.command, .control])
             $0.addItem(.separator())
             $0.addItem("Actual Size", #selector(ViewerWindowController.actualSize(_:)), "0")
-            $0.addItem("Zoom In", #selector(ViewerWindowController.zoomIn(_:)), "+")
-            $0.addItem("Zoom Out", #selector(ViewerWindowController.zoomOut(_:)), "-")
+            $0.addItem("Zoom In", #selector(ViewerWindowController.zoomInText(_:)), "+")
+            $0.addItem("Zoom Out", #selector(ViewerWindowController.zoomOutText(_:)), "-")
             $0.addItem(.separator())
             $0.addItem("Enter Full Screen", #selector(NSWindow.toggleFullScreen(_:)), "f", [.command, .control])
         }
