@@ -6,6 +6,25 @@ import WebKit
 final class MarkdownViewController: NSViewController {
     static let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd", "mkdn", "mdx"]
     private static let zoomKey = "pageZoom"
+
+    /// highlight.js runs in its own script world: it can color the page, but the page can't reach it,
+    /// and scripts inside the markdown still never run.
+    private static let highlightWorld = WKContentWorld.world(name: "MDViewHighlight")
+    private static let highlightScript: WKUserScript? = {
+        guard let url = Bundle.main.url(forResource: "highlight.min", withExtension: "js"),
+              let library = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        let source = library + """
+
+            hljs.configure({ ignoreUnescapedHTML: true });
+            window.mdvHighlight = () => document
+                .querySelectorAll('pre code[class*="language-"]:not([data-highlighted])')
+                .forEach(el => { try { hljs.highlightElement(el); } catch (e) {} });
+            mdvHighlight();
+            """
+        return WKUserScript(source: source, injectionTime: .atDocumentEnd, forMainFrameOnly: true,
+                            in: highlightWorld)
+    }()
+
     private let webView: WKWebView
     private(set) var fileURL: URL?
     private var markdown = ""
@@ -21,6 +40,7 @@ final class MarkdownViewController: NSViewController {
         config.setURLSchemeHandler(LocalFileSchemeHandler(), forURLScheme: LocalFileSchemeHandler.scheme)
         // Scripts inside the markdown never run; only the app's own injected JS does.
         config.defaultWebpagePreferences.allowsContentJavaScript = false
+        if let script = Self.highlightScript { config.userContentController.addUserScript(script) }
         webView = WKWebView(frame: NSRect(x: 0, y: 0, width: 900, height: 1000), configuration: config)
         webView.setValue(false, forKey: "drawsBackground")
         let zoom = UserDefaults.standard.double(forKey: Self.zoomKey)
@@ -69,7 +89,9 @@ final class MarkdownViewController: NSViewController {
         if pageLoaded, let json = Self.jsonLiteral(body) {
             // Swap content in place: no flash, and scroll position is kept.
             webView.evaluateJavaScript("document.getElementById('content').innerHTML = \(json);",
-                                       in: nil, in: .defaultClient)
+                                       in: nil, in: .defaultClient) { [weak self] _ in
+                self?.webView.evaluateJavaScript("window.mdvHighlight?.()", in: nil, in: Self.highlightWorld)
+            }
         } else {
             webView.loadHTMLString(Renderer.page(body: body),
                                    baseURL: LocalFileSchemeHandler.url(forDirectory: url.deletingLastPathComponent()))

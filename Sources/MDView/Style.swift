@@ -3,11 +3,17 @@ enum Style {
     :root {
       --fg: #1f2328; --muted: #59636e; --bg: #ffffff; --border: #d1d9e0;
       --code-bg: #f6f8fa; --link: #0969da; --mark: #fff8c5;
+      --hl-keyword: #cf222e; --hl-title: #8250df; --hl-string: #0a3069; --hl-number: #0550ae;
+      --hl-comment: #6e7781; --hl-type: #953800; --hl-tag: #116329;
+      --hl-add-fg: #116329; --hl-add-bg: #dafbe1; --hl-del-fg: #82071e; --hl-del-bg: #ffebe9;
     }
     @media (prefers-color-scheme: dark) {
       :root {
         --fg: #e6edf3; --muted: #9198a1; --bg: #0d1117; --border: #3d444d;
         --code-bg: #151b23; --link: #4493f8; --mark: #bb800926;
+        --hl-keyword: #ff7b72; --hl-title: #d2a8ff; --hl-string: #a5d6ff; --hl-number: #79c0ff;
+        --hl-comment: #9198a1; --hl-type: #ffa657; --hl-tag: #7ee787;
+        --hl-add-fg: #aff5b4; --hl-add-bg: #033a16; --hl-del-fg: #ffdcd7; --hl-del-bg: #67060c;
       }
     }
     html { background: var(--bg); }
@@ -46,6 +52,20 @@ enum Style {
     img { max-width: 100%; }
     hr { height: 3px; margin: 1.5em 0; border: 0; background: var(--border); }
     .empty { margin-top: 30vh; text-align: center; color: var(--muted); }
+    .hljs-keyword, .hljs-meta .hljs-keyword, .hljs-doctag, .hljs-template-tag, .hljs-template-variable,
+    .hljs-type.hljs-keyword, .hljs-variable.language_ { color: var(--hl-keyword); }
+    .hljs-title, .hljs-title.class_, .hljs-title.function_ { color: var(--hl-title); }
+    .hljs-attr, .hljs-attribute, .hljs-literal, .hljs-meta, .hljs-number, .hljs-operator,
+    .hljs-variable, .hljs-selector-attr, .hljs-selector-class, .hljs-selector-id { color: var(--hl-number); }
+    .hljs-regexp, .hljs-string, .hljs-meta .hljs-string { color: var(--hl-string); }
+    .hljs-built_in, .hljs-symbol, .hljs-type, .hljs-params { color: var(--hl-type); }
+    .hljs-comment, .hljs-code, .hljs-formula { color: var(--hl-comment); font-style: italic; }
+    .hljs-name, .hljs-quote, .hljs-selector-tag, .hljs-selector-pseudo { color: var(--hl-tag); }
+    .hljs-section { color: var(--hl-number); font-weight: 600; }
+    .hljs-bullet { color: var(--hl-type); }
+    .hljs-emphasis { font-style: italic; } .hljs-strong { font-weight: 600; }
+    .hljs-addition { color: var(--hl-add-fg); background: var(--hl-add-bg); }
+    .hljs-deletion { color: var(--hl-del-fg); background: var(--hl-del-bg); }
     mark { background: var(--mark); color: inherit; }
     @media print {
       body { padding: 0; }
