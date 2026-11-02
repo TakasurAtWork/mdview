@@ -42,3 +42,17 @@ so it holds no memory in the background.
     mdv ~/Developer/some-repo
 
 To make it the default for `.md`: Finder → Get Info on any `.md` → Open with: MDView → Change All.
+
+## License
+
+Copyright © 2026 Takasur Azeem
+
+MDView is free software: you can redistribute it and/or modify it under the terms of the
+[GNU General Public License v3.0](LICENSE) as published by the Free Software Foundation, either
+version 3 of the License, or (at your option) any later version. Forks and modified versions you
+distribute must stay under the same license, with their source available.
+
+Third-party code it uses keeps its own license:
+- [swift-markdown](https://github.com/swiftlang/swift-markdown): Apache License 2.0
+- [swift-cmark](https://github.com/swiftlang/swift-cmark) (cmark-gfm): BSD 2-Clause
+- [highlight.js](https://highlightjs.org), bundled as `Resources/highlight.min.js`: BSD 3-Clause, notice in the file header
