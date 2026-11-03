@@ -14,7 +14,7 @@ cp "$BIN" "$APP/Contents/MacOS/MDView"
 strip -x "$APP/Contents/MacOS/MDView"
 cp Resources/Info.plist "$APP/Contents/"
 [[ -f Resources/AppIcon.icns ]] || swift tools/make-icon.swift Resources/AppIcon.icns
-cp Resources/AppIcon.icns Resources/highlight.min.js "$APP/Contents/Resources/"
+cp Resources/AppIcon.icns Resources/highlight.min.js Resources/mermaid.min.js "$APP/Contents/Resources/"
 codesign --force --sign - "$APP"
 echo "Built $APP ($(du -sh "$APP" | cut -f1))"
 

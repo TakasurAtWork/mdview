@@ -17,7 +17,7 @@ final class MarkdownViewController: NSViewController {
 
             hljs.configure({ ignoreUnescapedHTML: true });
             window.mdvHighlight = () => document
-                .querySelectorAll('pre code[class*="language-"]:not([data-highlighted])')
+                .querySelectorAll('pre code[class*="language-"]:not(.language-mermaid):not([data-highlighted])')
                 .forEach(el => { try { hljs.highlightElement(el); } catch (e) {} });
             mdvHighlight();
             """
@@ -25,12 +25,57 @@ final class MarkdownViewController: NSViewController {
                             in: highlightWorld)
     }()
 
+    /// mermaid.js is 5 MB, so it's only loaded into a page that has a ```mermaid block, and read
+    /// from disk each time rather than kept in memory. It runs in the highlighter's isolated world,
+    /// in Mermaid's strict security mode.
+    private static func mermaidScript() -> String? {
+        guard let url = Bundle.main.url(forResource: "mermaid.min", withExtension: "js"),
+              let library = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        return library + """
+
+            window.mdvMermaid = async () => {
+                const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+                mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', suppressErrorRendering: true,
+                                     theme: dark ? 'dark' : 'default', fontFamily: '-apple-system, sans-serif' });
+                const pending = [...document.querySelectorAll('pre > code.language-mermaid')].map(code => {
+                    const div = document.createElement('div');
+                    div.dataset.source = code.textContent;
+                    code.parentElement.replaceWith(div);
+                    return div;
+                });
+                await mdvDrawDiagrams(pending);
+            };
+            window.mdvDrawDiagrams = async (divs) => {
+                for (const div of divs) {
+                    const id = 'mdv-mermaid-' + Math.random().toString(36).slice(2);
+                    try {
+                        const { svg } = await mermaid.render(id, div.dataset.source);
+                        div.className = 'mermaid-diagram';
+                        div.innerHTML = svg;
+                    } catch (e) {
+                        document.getElementById('d' + id)?.remove();
+                        div.className = 'mermaid-error';
+                        div.textContent = 'Mermaid: ' + (e?.message ?? e);
+                    }
+                }
+            };
+            // Redraw in the new theme when the system switches between light and dark.
+            matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', suppressErrorRendering: true,
+                                     theme: e.matches ? 'dark' : 'default', fontFamily: '-apple-system, sans-serif' });
+                mdvDrawDiagrams([...document.querySelectorAll('div[data-source]')]);
+            });
+            0
+            """
+    }
+
     private let webView: WKWebView
     private(set) var fileURL: URL?
     private var markdown = ""
     private var watcher: FileWatcher?
     private var pageLoaded = false
     private var pendingFragment: String?
+    private var mermaidLoaded = false
 
     /// Lets a folder window keep `.md` links in the same window. Return true if handled.
     var openMarkdownLink: ((URL, String?) -> Bool)?
@@ -91,11 +136,22 @@ final class MarkdownViewController: NSViewController {
             webView.evaluateJavaScript("document.getElementById('content').innerHTML = \(json);",
                                        in: nil, in: .defaultClient) { [weak self] _ in
                 self?.webView.evaluateJavaScript("window.mdvHighlight?.()", in: nil, in: Self.highlightWorld)
+                self?.renderDiagrams()
             }
         } else {
+            mermaidLoaded = false
             webView.loadHTMLString(Renderer.page(body: body),
                                    baseURL: LocalFileSchemeHandler.url(forDirectory: url.deletingLastPathComponent()))
         }
+    }
+
+    private func renderDiagrams() {
+        guard markdown.contains("```mermaid") || markdown.contains("~~~mermaid") else { return }
+        if !mermaidLoaded, let script = Self.mermaidScript() {
+            mermaidLoaded = true
+            webView.evaluateJavaScript(script, in: nil, in: Self.highlightWorld) { _ in }
+        }
+        webView.evaluateJavaScript("window.mdvMermaid?.(); 0", in: nil, in: Self.highlightWorld) { _ in }
     }
 
     private func scroll(toFragment fragment: String) {
@@ -152,6 +208,7 @@ final class MarkdownViewController: NSViewController {
 extension MarkdownViewController: WKNavigationDelegate, WKUIDelegate {
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         pageLoaded = true
+        renderDiagrams()
         if let fragment = pendingFragment {
             pendingFragment = nil
             scroll(toFragment: fragment)

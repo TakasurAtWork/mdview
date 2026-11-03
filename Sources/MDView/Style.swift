@@ -84,6 +84,10 @@ enum Style {
     .hljs-emphasis { font-style: italic; } .hljs-strong { font-weight: 600; }
     .hljs-addition { color: var(--hl-add-fg); background: var(--hl-add-bg); }
     .hljs-deletion { color: var(--hl-del-fg); background: var(--hl-del-bg); }
+    .mermaid-diagram { margin: 0 0 1em; text-align: center; overflow-x: auto; }
+    .mermaid-diagram svg { max-width: 100%; height: auto; }
+    .mermaid-error { margin: 0 0 1em; padding: 12px 16px; color: var(--alert-caution); white-space: pre-wrap;
+      font: 85%/1.45 ui-monospace, "SF Mono", Menlo, monospace; border: 1px dashed var(--alert-caution); border-radius: 6px; }
     mark { background: var(--mark); color: inherit; }
     @media print {
       body { padding: 0; }
